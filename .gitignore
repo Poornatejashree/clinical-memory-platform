@@ -1,0 +1,34 @@
+# Python / Backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/.pytest_cache/
+
+# Environment files — NEVER COMMIT
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+**/.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Node (in case top-level npm gets confused)
+node_modules/
+
+# Next.js (in case it builds anywhere weird)
+.next/

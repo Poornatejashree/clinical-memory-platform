@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
-import { Brain, Sparkles, ArrowLeft } from 'lucide-react'
+import { Brain, Sparkles, ArrowLeft, Info } from 'lucide-react'
 import Link from 'next/link'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -26,6 +26,20 @@ export default function AskPage() {
   const [answer, setAnswer] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [memoryCount, setMemoryCount] = useState<number | null>(null)
+  const [patientName, setPatientName] = useState('')
+
+  useEffect(() => {
+    async function loadContext() {
+      const [pRes, mRes] = await Promise.all([
+        supabase.from('patients').select('name').eq('id', id).single(),
+        supabase.from('memories').select('id', { count: 'exact', head: true }).eq('patient_id', id),
+      ])
+      if (pRes.data) setPatientName(pRes.data.name)
+      setMemoryCount(mRes.count ?? 0)
+    }
+    loadContext()
+  }, [id])
 
   async function ask(question: string) {
     setQ(question)
@@ -44,7 +58,7 @@ export default function AskPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ patient_id: id, question }),
       })
@@ -70,26 +84,59 @@ export default function AskPage() {
         </div>
         <div>
           <h1 className="text-2xl font-medium text-slate-900">Ask the institutional memory</h1>
-          <p className="text-sm text-slate-500">Recalls tacit concerns from previous shifts</p>
+          <p className="text-sm text-slate-500">
+            {patientName ? `Recalls tacit concerns about ${patientName} from previous shifts` : 'Recalls tacit concerns from previous shifts'}
+          </p>
         </div>
       </div>
 
+      {memoryCount === 0 && !answer && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Card className="p-4 bg-blue-50/60 backdrop-blur-xl border-blue-200/60">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">No memories yet for this patient</p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Record a handoff first. The AI will extract tacit concerns and store them as memories,
+                  which you can recall here on future shifts.
+                </p>
+                <Link href={`/patients/${id}/handoff`}>
+                  <Button size="sm" variant="outline" className="mt-3">
+                    Record a handoff →
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       <Card className="p-5 bg-white/60 backdrop-blur-xl">
-        <form onSubmit={(e) => { e.preventDefault(); if (q) ask(q) }} className="flex gap-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (q) ask(q)
+          }}
+          className="flex gap-2"
+        >
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="What should I watch for on this patient?"
             className="bg-white/80"
           />
-          <Button type="submit" disabled={loading}>Ask</Button>
+          <Button type="submit" disabled={loading}>
+            Ask
+          </Button>
         </form>
         <div className="flex flex-wrap gap-2 mt-3">
           {SUGGESTED.map((s) => (
             <button
               key={s}
               onClick={() => ask(s)}
-              className="text-xs px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700"
+              disabled={loading}
+              className="text-xs px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50"
             >
               {s}
             </button>
@@ -98,7 +145,11 @@ export default function AskPage() {
       </Card>
 
       {loading && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 text-sm text-slate-500">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-3 text-sm text-slate-500"
+        >
           <Sparkles className="w-4 h-4 animate-pulse" />
           Searching institutional memory...
         </motion.div>
@@ -119,7 +170,9 @@ export default function AskPage() {
 
             {answer.response?.contradictions?.length > 0 && (
               <div className="mt-5 p-3 bg-amber-50/60 rounded-lg border border-amber-100">
-                <p className="text-xs uppercase tracking-wide text-amber-700 mb-2">Contradictions detected</p>
+                <p className="text-xs uppercase tracking-wide text-amber-700 mb-2">
+                  Contradictions detected
+                </p>
                 {answer.response.contradictions.map((c: any, i: number) => (
                   <p key={i} className="text-sm text-slate-700">⚠ {c.concern}</p>
                 ))}
@@ -128,12 +181,19 @@ export default function AskPage() {
 
             {answer.memories?.length > 0 && (
               <div className="mt-5 pt-4 border-t border-slate-200/60">
-                <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Cited memories</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">
+                  Cited memories
+                </p>
                 {answer.memories.slice(0, 4).map((m: any) => (
                   <div key={m.id} className="text-xs text-slate-600 mb-2">
-                    <span className="font-medium">{m.memory_type}</span>{' '}
-                    · {new Date(m.created_at).toLocaleDateString()}
-                    {m.similarity && <span className="ml-1 text-slate-400">({(m.similarity * 100).toFixed(0)}% match)</span>}
+                    <span className="font-medium">{m.memory_type}</span>
+                    {' · '}
+                    {new Date(m.created_at).toLocaleDateString()}
+                    {m.similarity && (
+                      <span className="ml-1 text-slate-400">
+                        ({(m.similarity * 100).toFixed(0)}% match)
+                      </span>
+                    )}
                     <p className="text-slate-500 mt-0.5">{m.content}</p>
                   </div>
                 ))}

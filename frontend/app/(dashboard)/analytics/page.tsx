@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { BarChart3, Cpu, DollarSign, Clock } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState({
@@ -13,14 +14,33 @@ export default function AnalyticsPage() {
   })
 
   useEffect(() => {
-    // Placeholder — wire up to /api/analytics/cost-summary when backend is running
-    setStats({
-      total_cost: 0.0042,
-      total_calls: 18,
-      avg_latency: 312,
-      by_tier: { fast: 14, balanced: 3, premium: 1 },
+  async function load() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    
+    const r = await fetch('http://localhost:8000/api/analytics/routing', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
     })
-  }, [])
+    const logs = await r.json()
+    
+    if (logs.length === 0) return
+    
+    const total_cost = logs.reduce((s: number, l: any) => s + (l.cost_usd || 0), 0)
+    const total_calls = logs.length
+    const avg_latency = Math.round(logs.reduce((s: number, l: any) => s + (l.latency_ms || 0), 0) / total_calls)
+    
+    const by_tier = { fast: 0, balanced: 0, premium: 0 }
+    logs.forEach((l: any) => {
+      const m = l.model_used || ''
+      if (m.includes('8b') || m.includes('8B')) by_tier.fast++
+      else if (m.includes('70b') || m.includes('70B')) by_tier.balanced++
+      else by_tier.premium++
+    })
+    
+    setStats({ total_cost, total_calls, avg_latency, by_tier })
+  }
+  load()
+}, [])
 
   return (
     <div className="max-w-6xl space-y-6">

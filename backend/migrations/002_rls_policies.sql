@@ -23,3 +23,22 @@ create policy "dept memories" on memories
   );
 
 -- Inserts via service role only (backend bypasses RLS)
+-- Added later: SELECT policies for handoffs, alerts, timeline_events
+create policy "dept handoffs" on handoffs
+  for select using (
+    department = (select department from profiles where id = auth.uid())
+  );
+
+create policy "dept alerts" on alerts
+  for select using (
+    patient_id in (
+      select id from patients where department = (select department from profiles where id = auth.uid())
+    )
+  );
+
+create policy "dept timeline" on timeline_events
+  for select using (
+    patient_id in (
+      select id from patients where department = (select department from profiles where id = auth.uid())
+    )
+  );

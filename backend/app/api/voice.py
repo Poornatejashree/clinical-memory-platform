@@ -10,7 +10,7 @@ groq_client = Groq(api_key=settings.GROQ_API_KEY)
 async def transcribe(audio: UploadFile = File(...), user=Depends(get_current_user)):
     audio_bytes = await audio.read()
     transcription = groq_client.audio.transcriptions.create(
-        file=(audio.filename, audio_bytes),
+        file=(audio.filename or "audio.webm", audio_bytes),
         model="whisper-large-v3",
         response_format="text",
     )

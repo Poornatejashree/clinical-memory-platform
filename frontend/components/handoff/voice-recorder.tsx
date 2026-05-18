@@ -1,32 +1,59 @@
 'use client'
+
 import { useState, useRef } from 'react'
 import { Mic, Square, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase/client'
 
-export function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => void }) {
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+export function VoiceRecorder({ onTranscript }: { onTranscript: (text: string) => void }) {
   const [recording, setRecording] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState('')
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   async function start() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const mr = new MediaRecorder(stream)
-    mediaRef.current = mr
-    chunksRef.current = []
-    mr.ondataavailable = e => chunksRef.current.push(e.data)
-    mr.onstop = async () => {
-      setProcessing(true)
-      const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-      const file = new File([blob], 'handoff.webm', { type: 'audio/webm' })
-      const { text } = await api.postFile<{text: string}>('/api/voice/transcribe', file)
-      onTranscript(text)
-      setProcessing(false)
-      stream.getTracks().forEach(t => t.stop())
+    setError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const mr = new MediaRecorder(stream)
+      mediaRef.current = mr
+      chunksRef.current = []
+      mr.ondataavailable = (e) => chunksRef.current.push(e.data)
+      mr.onstop = async () => {
+        setProcessing(true)
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const file = new File([blob], 'handoff.webm', { type: 'audio/webm' })
+
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          const fd = new FormData()
+          fd.append('audio', file)
+          const r = await fetch(`${API}/api/voice/transcribe`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+            body: fd,
+          })
+          if (!r.ok) throw new Error(await r.text())
+          const data = await r.json()
+          onTranscript(data.text)
+        } catch (e: any) {
+          setError(e.message || 'Transcription failed')
+        } finally {
+          setProcessing(false)
+          streamRef.current?.getTracks().forEach((t) => t.stop())
+          streamRef.current = null
+        }
+      }
+      mr.start()
+      setRecording(true)
+    } catch (e: any) {
+      setError(e.message || 'Could not access microphone')
     }
-    mr.start()
-    setRecording(true)
   }
 
   function stop() {
@@ -35,16 +62,24 @@ export function VoiceRecorder({ onTranscript }: { onTranscript: (t: string) => v
   }
 
   return (
-    <Button
-      type="button"
-      onClick={recording ? stop : start}
-      disabled={processing}
-      variant={recording ? "destructive" : "outline"}
-      className="gap-2"
-    >
-      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> :
-       recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-      {processing ? 'Transcribing...' : recording ? 'Stop' : 'Voice handoff'}
-    </Button>
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        onClick={recording ? stop : start}
+        disabled={processing}
+        variant={recording ? 'destructive' : 'outline'}
+        className="gap-2"
+        size="sm"
+      >
+        {processing ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> Transcribing...</>
+        ) : recording ? (
+          <><Square className="w-4 h-4" /> Stop</>
+        ) : (
+          <><Mic className="w-4 h-4" /> Voice handoff</>
+        )}
+      </Button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Sparkles } from 'lucide-react'
-import Link from 'next/link'
+import { VoiceRecorder } from '@/components/handoff/voice-recorder'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -24,10 +25,10 @@ export default function HandoffPage() {
   async function submit() {
     setLoading(true)
     setError('')
-    
+
     const { data: { session } } = await supabase.auth.getSession()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!session || !user) {
       router.push('/login')
       return
@@ -44,7 +45,7 @@ export default function HandoffPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           patient_id: id,
@@ -53,12 +54,12 @@ export default function HandoffPage() {
           shift_type: 'day',
         }),
       })
-      
+
       if (!r.ok) {
         const text = await r.text()
         throw new Error(text)
       }
-      
+
       const data = await r.json()
       setResult(data.extraction)
     } catch (e: any) {
@@ -80,6 +81,10 @@ export default function HandoffPage() {
       </div>
 
       <Card className="p-6 bg-white/60 backdrop-blur-xl">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium text-slate-700">Speak or type your handoff</p>
+          <VoiceRecorder onTranscript={(text) => setTranscript(prev => prev ? prev + ' ' + text : text)} />
+        </div>
         <Textarea
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}

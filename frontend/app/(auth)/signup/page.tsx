@@ -43,8 +43,9 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 p-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="w-[420px] p-8 bg-white/70 backdrop-blur-xl border-white/40 shadow-xl">
-          <h1 className="text-2xl font-medium text-slate-900 mb-1">Create account</h1>
-          <p className="text-sm text-slate-500 mb-6">Join your hospital's memory layer</p>
+          <h1 className="text-2xl font-medium text-slate-900 mb-1">Create ShiftBrain account</h1>
+          <p className="text-sm text-slate-500 mb-2">Join the clinical handoff memory app.</p>
+          <p className="text-xs text-slate-400 mb-6">Demo only. Not for real clinical use. Does not provide medical advice.</p>
           
           <form onSubmit={handleSignup} className="space-y-3">
             <Input

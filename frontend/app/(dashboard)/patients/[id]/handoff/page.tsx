@@ -1,68 +1,59 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Sparkles } from 'lucide-react'
-import { VoiceRecorder } from '@/components/handoff/voice-recorder'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { VoiceHandoffInput } from '@/components/voice/voice-handoff-input'
+import { SpeechControls } from '@/components/voice/speech-controls'
 
 export default function HandoffPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [transcript, setTranscript] = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [shift, setShift] = useState('night')
+  const [formalNote, setFormalNote] = useState('')
+  const [gutConcern, setGutConcern] = useState('')
+  const [thingsNotInChart, setThingsNotInChart] = useState('')
+  const [watchOuts, setWatchOuts] = useState('')
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    supabase.from('patients').select('name').eq('id', id).single().then(({ data }) => {
+      if (data?.name) setPatientName(data.name)
+    })
+  }, [id])
 
   async function submit() {
     setLoading(true)
     setError('')
 
-    const { data: { session } } = await supabase.auth.getSession()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!session || !user) {
-      router.push('/login')
-      return
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('department')
-      .eq('id', user.id)
-      .single()
-
     try {
-      const r = await fetch(`${API}/api/handoffs/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          patient_id: id,
-          transcript,
-          department: profile?.department || 'icu',
-          shift_type: 'day',
-        }),
+      const data = await api.post<any>('/api/handoffs/', {
+        patient_id: id,
+        patient_name: patientName,
+        transcript,
+        formal_note: formalNote,
+        gut_concern: gutConcern,
+        things_not_in_chart: thingsNotInChart,
+        watch_outs: watchOuts,
+        department: 'icu',
+        shift_type: shift,
       })
-
-      if (!r.ok) {
-        const text = await r.text()
-        throw new Error(text)
-      }
-
-      const data = await r.json()
-      setResult(data.extraction)
+      setResult({ ...data.extraction, follow_up_questions: data.follow_up_questions || data.extraction?.follow_up_questions || [] })
     } catch (e: any) {
+      if (e.message.includes('Sign in')) router.push('/login')
       setError(e.message || 'Failed to submit handoff')
     } finally {
       setLoading(false)
@@ -76,25 +67,64 @@ export default function HandoffPage() {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-medium text-slate-900">Record shift handoff</h1>
-        <p className="text-slate-500 text-sm mt-1">AI extracts hidden concerns, risks, and monitoring priorities</p>
+        <h1 className="text-2xl font-medium text-slate-900">Outgoing Doctor Handoff</h1>
+        <p className="text-slate-500 text-sm mt-1">ShiftBrain captures the note, the gut-feel, and the context formal charts lose.</p>
       </div>
 
-      <Card className="p-6 bg-white/60 backdrop-blur-xl">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium text-slate-700">Speak or type your handoff</p>
-          <VoiceRecorder onTranscript={(text) => setTranscript(prev => prev ? prev + ' ' + text : text)} />
+      <Card className="p-6 bg-slate-950 text-white border-slate-800">
+        <p className="text-xs uppercase tracking-wide text-blue-200">ShiftBrain</p>
+        <h2 className="mt-1 text-xl font-medium">The outgoing doctor talks. The incoming doctor never starts from zero.</h2>
+        <p className="mt-2 text-sm text-slate-300">Demo only. Not for real clinical use. Does not provide medical advice.</p>
+      </Card>
+
+      <Card className="p-6 bg-white/70 backdrop-blur-xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Patient name / selector</p>
+            <Input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="Patient name" className="bg-white/80" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Shift</p>
+            <select value={shift} onChange={(e) => setShift(e.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white/80 px-3 text-sm">
+              <option value="day">Day</option>
+              <option value="night">Night</option>
+              <option value="swing">Swing</option>
+            </select>
+          </div>
         </div>
-        <Textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Patient stable on 2L O2 but I'm still concerned about overnight desaturations..."
-          className="min-h-[200px] bg-white/80"
-        />
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Formal handoff note</p>
+            <Textarea value={formalNote} onChange={(e) => setFormalNote(e.target.value)} placeholder="Vitals stable, no major changes..." className="min-h-[90px] bg-white/80" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Gut concern / clinical intuition</p>
+            <Textarea value={gutConcern} onChange={(e) => setGutConcern(e.target.value)} placeholder="Something feels off despite stable notes..." className="min-h-[90px] bg-white/80" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Things not in chart</p>
+            <Textarea value={thingsNotInChart} onChange={(e) => setThingsNotInChart(e.target.value)} placeholder="Patient anxious about surgery, kept asking about daughter..." className="min-h-[90px] bg-white/80" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Watch-outs tonight</p>
+            <Textarea value={watchOuts} onChange={(e) => setWatchOuts(e.target.value)} placeholder="What should the incoming doctor check first?" className="min-h-[90px] bg-white/80" />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <VoiceHandoffInput
+            label="Record or type full handoff transcript"
+            value={transcript}
+            onChange={setTranscript}
+            placeholder="Speak or type the full handoff. You can edit the transcript before saving."
+            minHeight="min-h-[120px]"
+          />
+        </div>
         {error && (
           <p className="text-sm text-red-600 bg-red-50 p-2 rounded mt-3">{error}</p>
         )}
-        <Button onClick={submit} disabled={loading || !transcript} className="mt-4 gap-2">
+        <Button onClick={submit} disabled={loading || !(formalNote || gutConcern || thingsNotInChart || watchOuts || transcript)} className="mt-4 gap-2">
           {loading ? (
             <><Sparkles className="w-4 h-4 animate-pulse" /> Extracting intelligence...</>
           ) : 'Submit handoff'}
@@ -105,6 +135,20 @@ export default function HandoffPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="p-6 bg-white/60 backdrop-blur-xl">
             <h2 className="font-medium mb-4">Extracted intelligence</h2>
+
+            {result.follow_up_questions?.length > 0 && (
+              <section className="mb-5 rounded-lg border border-blue-100 bg-blue-50/70 p-4">
+                <h3 className="text-xs uppercase tracking-wide text-blue-700 mb-2">AI follow-up questions before you leave</h3>
+                <ul className="text-sm text-slate-800 space-y-2">
+                  {result.follow_up_questions.map((q: string, i: number) => (
+                    <li key={i}>- {q}</li>
+                  ))}
+                </ul>
+                <div className="mt-3">
+                  <SpeechControls text={result.follow_up_questions.join(' ')} />
+                </div>
+              </section>
+            )}
 
             {result.hidden_concerns?.length > 0 && (
               <section className="mb-5">

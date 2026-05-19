@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -37,23 +37,11 @@ export default function OnboardingPage() {
     setLoading(true)
     setError('')
     
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-    
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        full_name: fullName,
-        role,
-        department,
-      })
-    
-    if (profileError) {
-      setError(profileError.message)
+    try {
+      await api.post('/api/auth/profile', { full_name: fullName, role, department })
+    } catch (err: any) {
+      if (err.message?.includes('Sign in')) router.push('/login')
+      setError(err.message || 'Could not save profile.')
       setLoading(false)
       return
     }

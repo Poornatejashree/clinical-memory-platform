@@ -3,20 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { Brain, Sparkles, ArrowLeft, Info } from 'lucide-react'
 import Link from 'next/link'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { VoiceHandoffInput } from '@/components/voice/voice-handoff-input'
+import { SpeechControls } from '@/components/voice/speech-controls'
 
 const SUGGESTED = [
   "Anything I should monitor overnight?",
   "What did the previous doctor seem worried about?",
   "Were there any unresolved concerns?",
-  "Any contradictions between recent notes?",
+  "Any hidden concerns?",
 ]
 
 export default function AskPage() {
@@ -47,25 +47,11 @@ export default function AskPage() {
     setAnswer(null)
     setError('')
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      router.push('/login')
-      return
-    }
-
     try {
-      const r = await fetch(`${API}/api/memory/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ patient_id: id, question }),
-      })
-      if (!r.ok) throw new Error(await r.text())
-      const data = await r.json()
+      const data = await api.post<any>('/api/memory/ask', { patient_id: id, question })
       setAnswer(data)
     } catch (e: any) {
+      if (e.message.includes('Sign in')) router.push('/login')
       setError(e.message || 'Failed to query memory')
     } finally {
       setLoading(false)
@@ -83,9 +69,9 @@ export default function AskPage() {
           <Brain className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-medium text-slate-900">Ask the institutional memory</h1>
+          <h1 className="text-2xl font-medium text-slate-900">Incoming Doctor Q&A</h1>
           <p className="text-sm text-slate-500">
-            {patientName ? `Recalls tacit concerns about ${patientName} from previous shifts` : 'Recalls tacit concerns from previous shifts'}
+            {patientName ? `Prioritizes gut concerns, missing context, and cross-shift patterns for ${patientName}` : 'Prioritizes gut concerns, missing context, and cross-shift patterns'}
           </p>
         </div>
       </div>
@@ -112,21 +98,22 @@ export default function AskPage() {
         </motion.div>
       )}
 
-      <Card className="p-5 bg-white/60 backdrop-blur-xl">
+      <Card className="p-5 bg-white/70 backdrop-blur-xl">
         <form
           onSubmit={(e) => {
             e.preventDefault()
             if (q) ask(q)
           }}
-          className="flex gap-2"
+          className="space-y-4"
         >
-          <Input
+          <VoiceHandoffInput
+            label="Ask by voice or type"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="What should I watch for on this patient?"
-            className="bg-white/80"
+            onChange={setQ}
+            placeholder="What should I watch for?"
+            minHeight="min-h-[90px]"
           />
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || !q}>
             Ask
           </Button>
         </form>
@@ -167,6 +154,9 @@ export default function AskPage() {
             <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
               {answer.response?.answer}
             </p>
+            <div className="mt-4">
+              <SpeechControls text={answer.response?.answer || ''} />
+            </div>
 
             {answer.response?.contradictions?.length > 0 && (
               <div className="mt-5 p-3 bg-amber-50/60 rounded-lg border border-amber-100">
@@ -175,6 +165,22 @@ export default function AskPage() {
                 </p>
                 {answer.response.contradictions.map((c: any, i: number) => (
                   <p key={i} className="text-sm text-slate-700">⚠ {c.concern}</p>
+                ))}
+              </div>
+            )}
+
+            {answer.response?.detected_patterns?.length > 0 && (
+              <div className="mt-5 p-3 bg-amber-50/70 rounded-lg border border-amber-100">
+                <p className="text-xs uppercase tracking-wide text-amber-700 mb-2">
+                  Cross-shift pattern detected
+                </p>
+                {answer.response.detected_patterns.map((pattern: any, i: number) => (
+                  <div key={i} className="mb-3 last:mb-0">
+                    <p className="text-sm font-medium text-slate-800">
+                      {pattern.pattern} ({pattern.evidence_count} signals)
+                    </p>
+                    <p className="text-xs text-amber-800 mt-1">{pattern.suggested_action}</p>
+                  </div>
                 ))}
               </div>
             )}

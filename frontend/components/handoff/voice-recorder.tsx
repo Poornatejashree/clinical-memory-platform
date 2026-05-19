@@ -3,9 +3,7 @@
 import { useState, useRef } from 'react'
 import { Mic, Square, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase/client'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { api } from '@/lib/api'
 
 export function VoiceRecorder({ onTranscript }: { onTranscript: (text: string) => void }) {
   const [recording, setRecording] = useState(false)
@@ -30,17 +28,8 @@ export function VoiceRecorder({ onTranscript }: { onTranscript: (text: string) =
         const file = new File([blob], 'handoff.webm', { type: 'audio/webm' })
 
         try {
-          const { data: { session } } = await supabase.auth.getSession()
-          const fd = new FormData()
-          fd.append('audio', file)
-          const r = await fetch(`${API}/api/voice/transcribe`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${session?.access_token}` },
-            body: fd,
-          })
-          if (!r.ok) throw new Error(await r.text())
-          const data = await r.json()
-          onTranscript(data.text)
+          const data = await api.postFile<any>('/api/voice/transcribe', file)
+          onTranscript(data.transcript || data.text)
         } catch (e: any) {
           setError(e.message || 'Transcription failed')
         } finally {

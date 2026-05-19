@@ -9,8 +9,12 @@ export default function Home() {
   
   useEffect(() => {
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser()
-      router.push(user ? '/dashboard' : '/login')
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        router.push(user ? '/dashboard' : '/login')
+      } catch {
+        router.push('/login')
+      }
     }
     check()
   }, [router])

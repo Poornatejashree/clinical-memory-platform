@@ -1,0 +1,62 @@
+warning: in the working copy of 'backend/app/api/alerts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/analytics.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/auth.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/handoffs.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/memory.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/patients.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/api/voice.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/config.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(auth)/login/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(auth)/onboarding/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(auth)/signup/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/alerts/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/analytics/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/dashboard/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/patients/[id]/ask/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/patients/[id]/handoff/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/patients/[id]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/patients/[id]/timeline/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/(dashboard)/patients/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/api/proxy/[...path]/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/app/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/handoff/voice-recorder.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/layout/sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/layout/topbar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/lib/api.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/lib/supabase/client.ts', LF will be replaced by CRLF the next time Git touches it
+ backend/app/api/alerts.py                          |  43 [32m++[m[31m-[m
+ backend/app/api/analytics.py                       |  32 [32m+[m[31m-[m
+ backend/app/api/auth.py                            |  18 [32m+[m[31m-[m
+ backend/app/api/handoffs.py                        | 355 [32m+++++++++++++++++++[m[31m--[m
+ backend/app/api/memory.py                          | 284 [32m+++++++++++++++[m[31m--[m
+ backend/app/api/patients.py                        | 180 [32m++++++++++[m[31m-[m
+ backend/app/api/voice.py                           |  44 [32m++[m[31m-[m
+ backend/app/config.py                              |   3 [32m+[m[31m-[m
+ backend/app/main.py                                |  15 [32m+[m[31m-[m
+ backend/seeds/demo_handoffs.json                   |   0
+ backend/seeds/seed_demo.py                         |  41 [31m---[m
+ frontend/app/(auth)/login/page.tsx                 |  27 [32m+[m[31m-[m
+ frontend/app/(auth)/onboarding/page.tsx            |  26 [32m+[m[31m-[m
+ frontend/app/(auth)/signup/page.tsx                |   7 [32m+[m[31m-[m
+ frontend/app/(dashboard)/alerts/page.tsx           |  77 [32m+++[m[31m--[m
+ frontend/app/(dashboard)/analytics/page.tsx        | 118 [32m++++[m[31m---[m
+ frontend/app/(dashboard)/dashboard/page.tsx        | 240 [32m+++++++[m[31m-------[m
+ .../app/(dashboard)/patients/[id]/ask/page.tsx     |  66 [32m++[m[31m--[m
+ .../app/(dashboard)/patients/[id]/handoff/page.tsx | 148 [32m++++++[m[31m---[m
+ frontend/app/(dashboard)/patients/[id]/page.tsx    | 128 [32m++++++[m[31m--[m
+ .../(dashboard)/patients/[id]/timeline/page.tsx    |  51 [32m+++[m
+ frontend/app/(dashboard)/patients/page.tsx         | 122 [32m++++[m[31m---[m
+ frontend/app/api/proxy/[...path]/route.ts          |  30 [32m++[m
+ frontend/app/globals.css                           |   3 [32m+[m[31m-[m
+ frontend/app/layout.tsx                            |  14 [32m+[m[31m-[m
+ frontend/app/page.tsx                              |  10 [32m+[m[31m-[m
+ frontend/components/handoff/voice-recorder.tsx     |  19 [32m+[m[31m-[m
+ frontend/components/layout/sidebar.tsx             |  10 [32m+[m[31m-[m
+ frontend/components/layout/topbar.tsx              |  14 [32m+[m[31m-[m
+ frontend/lib/api.ts                                |  83 [32m++++[m[31m-[m
+ frontend/lib/supabase/client.ts                    |   9 [32m+[m[31m-[m
+ frontend/package-lock.json                         |  28 [32m+[m[31m-[m
+ 32 files changed, 1662 insertions(+), 583 deletions(-)

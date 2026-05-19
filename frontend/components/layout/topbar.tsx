@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { LogOut, User } from 'lucide-react'
 
@@ -28,14 +29,11 @@ export function Topbar() {
 
   useEffect(() => {
     async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
+      try {
+        const data = await api.get<any>('/api/auth/me')
         setProfile(data)
+      } catch {
+        setProfile(null)
       }
     }
     loadProfile()
